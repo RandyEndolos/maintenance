@@ -73,83 +73,160 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Campus Director Login</title>
   <style>
     :root {
+      --maroon-900: #3f0a12;
       --maroon-700: #5a0f1b;
       --maroon-500: #8c1d2f;
-      --gray-50: #f9f6f7;
-      --gray-300: #e5e7eb;
+      --maroon-300: #c04b56;
+      --bg: #fbf8f9;
+      --muted: #6b7280;
+      --panel: #ffffff;
+      --edge: #e9e6e7;
     }
+
     * { box-sizing: border-box; }
+    html,body { height: 100%; }
     body {
       margin: 0;
-      min-height: 100vh;
       font-family: "Segoe UI", Roboto, Arial, sans-serif;
-      background: var(--gray-50);
+      background: linear-gradient(180deg, var(--maroon-700) 0%, var(--maroon-900) 100%);
+      /* subtle overlay to keep depth similar to previous design */
+      background-image: radial-gradient(800px 320px at 8% 10%, rgba(255,255,255,0.03), transparent),
+                        radial-gradient(600px 280px at 92% 90%, rgba(0,0,0,0.04), transparent),
+                        linear-gradient(180deg, var(--maroon-700) 0%, var(--maroon-900) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 28px;
     }
+
     .card {
       width: 100%;
-      max-width: 420px;
-      background: #fff;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 25px 40px rgba(0,0,0,0.09);
-      border: 1px solid var(--gray-300);
+      max-width: 460px;
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 18px 32px rgba(23,18,19,0.08), 0 2px 6px rgba(0,0,0,0.04);
+      border: 1px solid var(--edge);
+      overflow: hidden;
     }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .logo {
+      flex: 0 0 54px;
+      height: 54px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--maroon-700), var(--maroon-500));
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: 0 6px 18px rgba(90,15,27,0.18);
+      overflow: hidden;
+      padding: 6px;
+    }
+
+    .logo img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+      object-fit: contain;
+      border-radius: 8px;
+      background: transparent;
+    }
+
     h1 {
-      margin: 0 0 8px;
-      font-size: 26px;
-      color: var(--maroon-700);
+      margin: 0;
+      font-size: 20px;
+      color: var(--maroon-900);
+      letter-spacing: -0.2px;
     }
-    p { margin: 0 0 20px; color: #4b5563; }
-    label { display: block; font-weight: 600; color: var(--maroon-700); margin-bottom: 6px; }
+
+    .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+    label { display: block; font-weight: 600; color: var(--maroon-700); margin-bottom: 8px; font-size: 13px; }
+
     input {
       width: 100%;
       padding: 12px 14px;
       border-radius: 10px;
-      border: 1px solid var(--gray-300);
-      font: inherit;
+      border: 1px solid var(--edge);
+      font: 14px/1.3 "Segoe UI", Roboto, Arial, sans-serif;
       background: #fff;
+      transition: box-shadow .12s ease, border-color .12s ease, transform .08s ease;
     }
+
+    input:focus {
+      outline: none;
+      border-color: var(--maroon-500);
+      box-shadow: 0 6px 18px rgba(140,29,47,0.08);
+      transform: translateY(-1px);
+    }
+
+    .field { margin-bottom: 14px; }
+
     .btn {
       width: 100%;
       border: none;
-      margin-top: 18px;
+      margin-top: 10px;
       padding: 12px 14px;
       border-radius: 10px;
-      background: var(--maroon-700);
+      background: linear-gradient(180deg, var(--maroon-700), var(--maroon-900));
       color: #fff;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      font-size: 16px;
-      transition: background .15s ease;
+      font-size: 15px;
+      transition: transform .12s ease, box-shadow .12s ease;
+      box-shadow: 0 8px 20px rgba(90,15,27,0.12);
     }
-    .btn:hover { background: var(--maroon-500); }
+
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(90,15,27,0.14); }
+
     .error {
-      background: #fef2f2;
-      color: #b91c1c;
-      border: 1px solid #fecaca;
+      background: #fff4f4;
+      color: #7b1515;
+      border: 1px solid #f7caca;
       padding: 10px 14px;
-      border-radius: 8px;
-      margin-bottom: 16px;
+      border-radius: 10px;
+      margin-bottom: 14px;
       font-size: 14px;
     }
-    .field { margin-bottom: 16px; }
+
     .back-link {
       display: inline-block;
-      margin-top: 16px;
+      margin-top: 14px;
       color: var(--maroon-700);
       text-decoration: none;
       font-weight: 600;
+      font-size: 13px;
+    }
+
+    .meta-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:8px; }
+
+    @media (max-width:420px){
+      .card { padding:20px; }
+      .logo{flex-basis:48px;height:48px}
+      h1{font-size:18px}
     }
   </style>
 </head>
 <body>
   <section class="card">
-    <h1>Campus Director</h1>
-    <p>Please sign in using your EVSU account.</p>
+    <div class="card-header">
+      <div class="logo">
+        <img src="../img/logo.png" alt="EVSU logo">
+      </div>
+      <div class="brand-text">
+        <h1>Campus Director</h1>
+        <p class="sub">Please sign in using your EVSU account.</p>
+      </div>
+    </div>
     <?php if ($error !== ''): ?>
       <div class="error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>

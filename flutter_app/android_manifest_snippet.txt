@@ -1,0 +1,5 @@
+Add the following inside <manifest> (android/app/src/main/AndroidManifest.xml):
+
+<uses-permission android:name="android.permission.INTERNET"/>
+
+Place it before the <application> tag.
