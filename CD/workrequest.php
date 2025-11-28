@@ -117,6 +117,48 @@ try {
   $workRequests = [];
 }
 
+// Auto-approve requests where the requester is the campus director themselves
+$autoApprovedCount = 0;
+foreach ($workRequests as $idx => $row) {
+  $hasSignature = trim((string)($row['campus_director_signature'] ?? '')) !== '';
+  $status = strtolower(trim((string)($row['status'] ?? '')));
+  $requesterName = trim((string)($row['requesters_name'] ?? ''));
+  
+  // If pending and requester is the campus director, auto-approve
+  if (!$hasSignature && $status !== 'director disapproved' && $requesterName !== '') {
+    // Case-insensitive comparison of requester name with campus director name
+    if (strcasecmp($requesterName, $displayName) === 0) {
+      // Auto-approve if signature is available
+      if ($signatureImage !== '') {
+        try {
+          $update = [
+            'campus_director_signature' => $signatureImage,
+            'status' => 'Director Approved',
+          ];
+          supabase_request('PATCH', 'work_request', $update, ['id' => 'eq.' . (int)$row['id']]);
+          // Update the array element so it's reflected in pending/processed separation
+          $workRequests[$idx]['campus_director_signature'] = $signatureImage;
+          $workRequests[$idx]['status'] = 'Director Approved';
+          $autoApprovedCount++;
+        } catch (Throwable $e) {
+          // Silently fail for auto-approval errors, continue processing
+        }
+      }
+    }
+  }
+}
+
+if ($autoApprovedCount > 0) {
+  $autoApproveMsg = $autoApprovedCount === 1 
+    ? '1 work request automatically approved (self-request).' 
+    : "{$autoApprovedCount} work requests automatically approved (self-requests).";
+  if ($success !== '') {
+    $success .= ' ' . $autoApproveMsg;
+  } else {
+    $success = $autoApproveMsg;
+  }
+}
+
 $pendingRequests = [];
 $processedRequests = [];
 foreach ($workRequests as $row) {
