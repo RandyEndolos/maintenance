@@ -164,8 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <button class="btn" type="submit">Sign In</button>
     </form>
-    <a class="back-link" href="../main/index.php">&larr; Back to main portal</a>
-  </section>
+    </section>
 </body>
 </html>
 
