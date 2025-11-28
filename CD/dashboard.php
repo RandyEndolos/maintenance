@@ -93,7 +93,8 @@ try {
 $pendingWorkRows = array_values(array_filter($workRequestRows, function(array $row): bool {
   $status = strtolower(trim((string)($row['status'] ?? '')));
   $hasSignature = trim((string)($row['campus_director_signature'] ?? '')) !== '';
-  return !$hasSignature && $status !== 'director disapproved';
+  // Exclude requests that already have campus director signature or are approved/disapproved
+  return !$hasSignature && $status !== 'director disapproved' && $status !== 'director approved';
 }));
 $recentPendingWork = array_slice($pendingWorkRows, 0, 4);
 
@@ -277,7 +278,7 @@ function fmt_short_date(?string $value): string {
         <div class="avatar" aria-hidden="true"></div>
       <?php endif; ?>
       <div class="name"><?php echo htmlspecialchars($displayName); ?></div>
-      <a class="btn" href="../logout.php">Logout</a>
+      <a class="btn" href="logoutCD.php">Logout</a>
     </div>
   </header>
   <main>
@@ -295,10 +296,10 @@ function fmt_short_date(?string $value): string {
     </section>
 
     <section class="actions-grid">
+      <a class="btn" href="request.php">Create Request</a>
       <a class="btn" href="approvallist.php">Approval List</a>
       <a class="btn" href="information.php">My Information</a>
       <a class="btn" href="mesoLA.php">Leave & Absence</a>
-      <a class="btn" href="../main/index.php">Switch Portal</a>
     </section>
 
     <section class="card">
