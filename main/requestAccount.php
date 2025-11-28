@@ -40,10 +40,13 @@
 
     $isStaff = ($userType === 'Staff');
     $isRequester = ($userType === 'Requester');
-    $isAdmin = ($userType === 'Admin');
 
-    if ($isRequester || $isAdmin) {
-      if ($email === '') { $errors[] = 'Email is required for Requester and Admin.'; }
+    if (!$isStaff && !$isRequester) {
+      $errors[] = 'Only Staff or Requester accounts can be requested through this form.';
+    }
+
+    if ($isRequester) {
+      if ($email === '') { $errors[] = 'Email is required for Requester.'; }
       elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $errors[] = 'Email format is invalid.'; }
     }
     if ($isStaff) {
@@ -286,7 +289,6 @@
             <option value="" disabled selected>Select type</option>
             <option value="Staff">Staff</option>
             <option value="Requester">Requester</option>
-            <option value="Admin">Admin</option>
           </select>
         </div>
         <div class="field">
@@ -361,11 +363,10 @@
 
       const isStaff = type === 'Staff';
       const isRequester = type === 'Requester';
-      const isAdmin = type === 'Admin';
 
-      // Email: requester or admin
-      setVisible(emailField, isRequester || isAdmin);
-      setRequired(emailInput, isRequester || isAdmin);
+      // Email: requester
+      setVisible(emailField, isRequester);
+      setRequired(emailInput, isRequester);
 
       // Contact number: staff
       setVisible(contactNumberField, isStaff);
