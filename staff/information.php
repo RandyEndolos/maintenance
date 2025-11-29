@@ -170,36 +170,45 @@ $areaOfWork = (string)($dbUser['area_of_work'] ?? '');
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Staff Information</title>
 <style>
-  :root {
-    --maroon-700: #5a0f1b;
-    --maroon-600: #7a1b2a;
-    --maroon-400: #a42b43;
-    --offwhite: #f9f6f7;
-    --text: #222;
+  :root{
+    --maroon-900: #3f0710;
+    --maroon-800: #5a0f1b;
+    --maroon-700: #7a1b2a;
+    --maroon-600: #8b1f2f;
+    --maroon-500: #a42b43;
+    --muted: #fbf6f6;
+    --card: #ffffff;
+    --text: #111827;
+    --muted-text: #6b7280;
+    --success: #0b6b74;
+    --danger: #b91c1c;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: var(--text); }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #eee; background: #f9f6f7; }
-  .brand { font-weight: 700; color: var(--maroon-700); }
-  .profile { display: flex; align-items: center; gap: 10px; }
-  .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #ddd; }
-  .name { font-weight: 600; color: var(--maroon-700); }
-  .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
-  .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .btn { display: inline-block; text-decoration: none; text-align: center; padding: 14px 16px; border-radius: 10px; border: 1px solid #e5e5e5; background: #fff; cursor: pointer; font-weight: 600; color: var(--maroon-700); transition: background .15s ease, border-color .15s ease, transform .1s ease; }
-  .btn:hover { background: #fff7f8; border-color: var(--maroon-400); }
-  .btn:active { transform: translateY(1px); }
-  .card { border: 1px solid #eee; border-radius: 12px; padding: 16px; }
-  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  label { font-weight: 600; color: var(--maroon-700); }
-  input, textarea { padding: 10px 12px; border-radius: 8px; border: 1px solid #e5e5e5; font: inherit; }
-  textarea { min-height: 80px; resize: vertical; }
-  .row { display: flex; gap: 12px; align-items: center; }
-  .notice { padding: 10px 12px; border-radius: 8px; }
-  .error { background: #fff1f2; color: #7a1b2a; border: 1px solid #ffd5da; }
-  .success { background: #ecfeff; color: #0b6b74; border: 1px solid #cffafe; }
-  @media (max-width: 640px) { .actions { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter, -apple-system, system-ui,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--muted),#fff 60%);color:var(--text);-webkit-font-smoothing:antialiased}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(90deg,var(--maroon-800),var(--maroon-700));color:#fff;position:sticky;top:0;z-index:40;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+  .brand{font-weight:800;letter-spacing:0.4px;font-size:18px}
+  .profile{display:flex;align-items:center;gap:12px}
+  .avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#fff3f4;border:2px solid rgba(255,255,255,0.12)}
+  .name{font-weight:700;color:#fff}
+  .container{max-width:1100px;margin:28px auto;padding:0 18px}
+  .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:0;background:var(--maroon-700);color:#fff;font-weight:700;cursor:pointer;transition:transform .12s ease,background .12s ease}
+  .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--maroon-700);font-weight:700}
+  .btn:hover{transform:translateY(-3px);background:var(--maroon-800)}
+  @media(max-width:820px){.actions{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:480px){.actions{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border-radius:14px;padding:18px;border:1px solid rgba(15,23,42,0.04);box-shadow:0 8px 20px rgba(16,24,40,0.04)}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .field{display:flex;flex-direction:column;gap:8px}
+  label{font-weight:700;color:var(--maroon-900)}
+  input,textarea,select{padding:10px 12px;border-radius:10px;border:1px solid rgba(15,23,42,0.06);font:inherit}
+  textarea{min-height:110px}
+  .row{display:flex;gap:12px;align-items:center}
+  .notice{padding:10px 12px;border-radius:8px}
+  .error{background:#fff1f2;color:var(--danger);border:1px solid #ffd5da}
+  .success{background:#ecfeff;color:var(--success);border:1px solid #cffafe}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -213,9 +222,9 @@ $areaOfWork = (string)($dbUser['area_of_work'] ?? '');
   </header>
   <main class="container">
     <section class="actions" aria-label="Staff actions">
-      <a class="btn" href="/ERS/staff/dashboard.php">Back to Home</a>
-      <a class="btn" href="/ERS/staff/pendingtask.php">Pending Task</a>
-      <a class="btn" href="/ERS/staff/accomplishment.php">Accomplishments</a>
+      <a class="btn" href="/maintenance/staff/dashboard.php">Back to Home</a>
+      <a class="btn" href="/maintenance/staff/pendingtask.php">Pending Task</a>
+      <a class="btn" href="/maintenence/staff/accomplishment.php">Accomplishments</a>
       <button class="btn" type="button">Submit Work Leave/Absence</button>
     </section>
 

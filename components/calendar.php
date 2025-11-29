@@ -147,6 +147,7 @@ $apiPath = ($basePath ? $basePath . '/' : '') . 'api/calendar_data.php';
 
 .calendar-day-number {
   font-weight: 600;
+  color: var(--maroon-700, #5a0f1b);
   font-size: 14px;
   margin-bottom: 4px;
 }

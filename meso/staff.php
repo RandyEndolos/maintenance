@@ -15,7 +15,6 @@ try {
   $userName = isset($user['name']) && trim((string)$user['name']) !== '' ? trim((string)$user['name']) : '';
   
   if ($userName !== '') {
-    // Try to fetch by name first (with admin role filter)
     $query['name'] = 'eq.' . $userName;
     $query['user_type'] = 'ilike.admin';
   } elseif (isset($user['id']) && $user['id'] !== null && $user['id'] !== '') {
@@ -30,13 +29,11 @@ try {
     if (is_array($rows) && count($rows) > 0) {
       if (isset($rows[0]['name']) && trim((string)$rows[0]['name']) !== '') {
         $displayName = (string)$rows[0]['name'];
-        $_SESSION['user']['name'] = $displayName; // Keep session in sync
+        $_SESSION['user']['name'] = $displayName;
       }
     }
   }
-} catch (Throwable $e) {
-  // Fall back to session name
-}
+} catch (Throwable $e) {}
 
 $errors = [];
 $success = '';
@@ -118,7 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors) {
       try {
-        // Convert empty strings to null for optional fields (except images which can be empty strings to clear)
         foreach ($update as $key => $value) {
           if ($value === '' && in_array($key, ['email', 'contact_number', 'birthday', 'address', 'area_of_work', 'department'])) {
             $update[$key] = null;
@@ -126,10 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         supabase_request('PATCH', 'users', $update, ['id' => 'eq.' . $id]);
         $success = 'User updated successfully.';
-        // Refresh staff list to show updated data
         $staff = fetch_staff_users();
       } catch (Throwable $e) {
-        $errors[] = 'Failed to update user: ' . (strpos($e->getMessage(), 'duplicate key') !== false ? 'Email already exists.' : $e->getMessage());
+        $errors[] = 'Failed to update user.';
       }
     }
   }
@@ -137,244 +132,232 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $staff = fetch_staff_users();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manage Staff</title>
+
 <style>
-  :root {
-    --maroon-700: #5a0f1b;
-    --maroon-600: #7a1b2a;
-    --maroon-400: #a42b43;
-    --offwhite: #f9f6f7;
-    --text: #222;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: var(--text); }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #eee; background: var(--offwhite); }
-  .brand { font-weight: 700; color: var(--maroon-700); }
-  .profile { display: flex; align-items: center; gap: 10px; }
-  .name { font-weight: 600; color: var(--maroon-700); }
-  .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
-  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-  .btn { display: inline-block; text-decoration: none; text-align: center; padding: 10px 14px; border-radius: 10px; border: 1px solid #e5e5e5; background: #fff; cursor: pointer; font-weight: 600; color: var(--maroon-700); transition: background .15s ease, border-color .15s ease, transform .1s ease; }
-  .btn:hover { background: #fff7f8; border-color: var(--maroon-400); }
-  .btn:active { transform: translateY(1px); }
-  .notice { padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
-  .error { background: #fff1f2; color: #7a1b2a; border: 1px solid #ffd5da; }
-  .success { background: #ecfeff; color: #0b6b74; border: 1px solid #cffafe; }
-  .thumb { height: 36px; border-radius: 6px; border: 1px solid #eee; }
-  table { width: 100%; border-collapse: separate; border-spacing: 0; }
-  thead th { position: sticky; top: 0; background: #fff; text-align: left; font-weight: 700; color: var(--maroon-700); border-bottom: 2px solid #eee; padding: 10px; }
-  tbody td { border-bottom: 1px solid #f0f0f0; padding: 10px; vertical-align: top; }
-  tbody tr:hover { background: #fff7f8; }
-  .nowrap { white-space: nowrap; }
-  .muted { color: #666; font-size: 12px; }
-  .edit-row { display: none; background: #fafafa; }
-  .edit-row td { border-bottom: 1px solid #eee; }
-  .row-controls { display: flex; gap: 8px; align-items: center; }
-  .small { padding: 8px 10px; border-radius: 8px; }
-  input[type="text"], input[type="email"], input[type="date"], textarea { 
-    width: 100%; 
-    padding: 8px; 
-    border: 1px solid #e5e5e5; 
-    border-radius: 6px; 
-    font-size: 14px;
-    font-family: inherit;
-  }
-  input[type="text"]:focus, input[type="email"]:focus, input[type="date"]:focus, textarea:focus {
-    outline: none;
-    border-color: var(--maroon-400);
-    box-shadow: 0 0 0 3px rgba(164, 43, 67, 0.1);
-  }
-  label {
-    display: block;
-    margin-bottom: 4px;
-    font-weight: 600;
-    color: var(--maroon-700);
-    font-size: 14px;
-  }
+:root {
+  --maroon-dark: #5a0f1b;
+  --maroon: #7a1b2a;
+  --maroon-light: #a42b43;
+  --offwhite: #fdf7f8;
+  --text: #222;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fff;
+  color: var(--text);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--maroon);
+  color: #fff;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid var(--maroon-light);
+  color: var(--maroon-dark);
+  background: #fff;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--offwhite);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th {
+  background: var(--maroon);
+  color: #fff;
+  padding: 10px;
+}
+
+td {
+  border-bottom: 1px solid #ddd;
+  padding: 8px;
+}
+
+.thumb {
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+.edit-row {
+  background: #f9f1f2;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+label {
+  font-weight: bold;
+  color: var(--maroon-dark);
+}
+
+.success {
+  background: #e5fff3;
+  border-left: 4px solid #0a6b3b;
+  padding: 10px;
+}
+
+.error {
+  background: #ffe5e7;
+  border-left: 4px solid #7a1b2a;
+  padding: 10px;
+}
+
 </style>
+
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">RCC Admin</div>
-    <div class="profile">
-      <div class="name"><?php echo htmlspecialchars($displayName); ?></div>
-      <a class="btn" href="../logout.php">Logout</a>
-    </div>
-  </header>
-  <main class="container">
-    <section class="actions" aria-label="Admin actions">
-      <a class="btn" href="/ERS/meso/information.php">Information</a>
-      <a class="btn" href="/ERS/meso/dashboard.php">Back to Home</a>
-      <a class="btn" href="/ERS/meso/workRequest.php">Work Request</a>
-      <button class="btn" type="button">Reports</button>
-    </section>
 
-    <?php if ($errors): ?>
-      <div class="notice error"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div>
-    <?php elseif ($success !== ''): ?>
-      <div class="notice success"><?php echo htmlspecialchars($success); ?></div>
-    <?php endif; ?>
+<header class="topbar">
+  <div class="brand">RCC Admin</div>
+  <div>
+    <?php echo htmlspecialchars($displayName); ?> |
+    <a class="btn" href="../logout.php">Logout</a>
+  </div>
+</header>
 
-    <section aria-label="Staff list">
-      <table role="table">
-        <thead>
-          <tr>
-            <th style="width: 15%">Name</th>
-            <th style="width: 12%">Email</th>
-            <th style="width: 10%">Contact</th>
-            <th style="width: 12%">Department</th>
-            <th style="width: 12%">Area of Work</th>
-            <th style="width: 10%">Birthday</th>
-            <th>Address</th>
-            <th style="width: 8%">Profile</th>
-            <th style="width: 8%">Signature</th>
-            <th style="width: 12%" class="nowrap">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($staff as $s): ?>
-            <?php
-              $sid = (string)($s['id'] ?? '');
-              $sname = (string)($s['name'] ?? '');
-              $semail = (string)($s['email'] ?? '');
-              $scontact = (string)($s['contact_number'] ?? '');
-              $sdept = (string)($s['department'] ?? '');
-              $sbirthday = (string)($s['birthday'] ?? '');
-              $saddress = (string)($s['address'] ?? '');
-              $sarea = (string)($s['area_of_work'] ?? '');
-              $sprofile = (string)($s['profile_image'] ?? '');
-              $ssign = (string)($s['signature_image'] ?? '');
-            ?>
-            <tr>
-              <td><?php echo htmlspecialchars($sname); ?></td>
-              <td><?php echo htmlspecialchars($semail); ?></td>
-              <td><?php echo htmlspecialchars($scontact); ?></td>
-              <td><?php echo htmlspecialchars($sdept); ?></td>
-              <td><?php echo htmlspecialchars($sarea); ?></td>
-              <td><?php echo htmlspecialchars($sbirthday); ?></td>
-              <td><?php echo nl2br(htmlspecialchars($saddress)); ?></td>
-              <td>
-                <?php if ($sprofile !== ''): ?>
-                  <img class="thumb" src="<?php echo htmlspecialchars('../' . $sprofile); ?>" alt="Profile">
-                <?php else: ?>
-                  <span class="muted">None</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if ($ssign !== ''): ?>
-                  <img class="thumb" src="<?php echo htmlspecialchars('../' . $ssign); ?>" alt="Signature">
-                <?php else: ?>
-                  <span class="muted">None</span>
-                <?php endif; ?>
-              </td>
-              <td class="nowrap">
-                <div class="row-controls">
-                  <button class="btn small" type="button" data-edit-toggle="<?php echo htmlspecialchars($sid); ?>">Edit</button>
-                  <form method="post" onsubmit="return confirm('Delete this staff user?');" style="margin:0;">
-                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($sid); ?>">
-                    <button class="btn small" name="action" value="delete" type="submit">Delete</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            <tr class="edit-row" id="edit-<?php echo htmlspecialchars($sid); ?>">
-              <td colspan="10">
-                <form method="post" enctype="multipart/form-data" style="display:grid; gap: 12px; padding: 16px;">
-                  <input type="hidden" name="id" value="<?php echo htmlspecialchars($sid); ?>">
-                  <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
-                    <div>
-                      <label for="name-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Name *</label>
-                      <input id="name-<?php echo htmlspecialchars($sid); ?>" name="name" type="text" value="<?php echo htmlspecialchars($sname); ?>" required style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div>
-                      <label for="email-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Email</label>
-                      <input id="email-<?php echo htmlspecialchars($sid); ?>" name="email" type="email" value="<?php echo htmlspecialchars($semail); ?>" style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div>
-                      <label for="contact-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Contact Number</label>
-                      <input id="contact-<?php echo htmlspecialchars($sid); ?>" name="contact_number" type="text" value="<?php echo htmlspecialchars($scontact); ?>" style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div>
-                      <label for="dept-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Department</label>
-                      <input id="dept-<?php echo htmlspecialchars($sid); ?>" name="department" type="text" value="<?php echo htmlspecialchars($sdept); ?>" style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div>
-                      <label for="area-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Area of Work</label>
-                      <input id="area-<?php echo htmlspecialchars($sid); ?>" name="area_of_work" type="text" value="<?php echo htmlspecialchars($sarea); ?>" style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div>
-                      <label for="birthday-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Birthday</label>
-                      <input id="birthday-<?php echo htmlspecialchars($sid); ?>" name="birthday" type="date" value="<?php echo htmlspecialchars($sbirthday); ?>" style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px;">
-                    </div>
-                  </div>
-                  <div>
-                    <label for="address-<?php echo htmlspecialchars($sid); ?>" style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--maroon-700);">Address</label>
-                    <textarea id="address-<?php echo htmlspecialchars($sid); ?>" name="address" rows="3" style="padding: 8px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 14px; width: 100%; font-family: inherit;"><?php echo htmlspecialchars($saddress); ?></textarea>
-                  </div>
-                  <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: center;">
-                    <div>
-                      <label>Profile Image</label>
-                      <div class="row-controls">
-                        <?php if ($sprofile !== ''): ?>
-                          <img class="thumb" src="<?php echo htmlspecialchars('../' . $sprofile); ?>" alt="Profile">
-                          <label class="nowrap"><input type="checkbox" name="remove_profile_image" value="1"> Remove</label>
-                        <?php else: ?>
-                          <span class="muted">None</span>
-                        <?php endif; ?>
-                      </div>
-                      <input name="profile_image_file" type="file" accept="image/*">
-                    </div>
-                    <div>
-                      <label>Signature Image</label>
-                      <div class="row-controls">
-                        <?php if ($ssign !== ''): ?>
-                          <img class="thumb" src="<?php echo htmlspecialchars('../' . $ssign); ?>" alt="Signature">
-                          <label class="nowrap"><input type="checkbox" name="remove_signature_image" value="1"> Remove</label>
-                        <?php else: ?>
-                          <span class="muted">None</span>
-                        <?php endif; ?>
-                      </div>
-                      <input name="signature_image_file" type="file" accept="image/*">
-                    </div>
-                  </div>
-                  <div class="row-controls" style="justify-content: flex-end;">
-                    <button class="btn" name="action" value="update" type="submit">Save Changes</button>
-                    <button class="btn" type="button" data-edit-toggle="<?php echo htmlspecialchars($sid); ?>">Cancel</button>
-                  </div>
-                </form>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          <?php if (!$staff): ?>
-            <tr><td colspan="10">No staff users found.</td></tr>
+<div class="container">
+
+  <?php if ($errors): ?>
+    <div class="error"><?php echo implode(' ', $errors); ?></div>
+  <?php elseif ($success): ?>
+    <div class="success"><?php echo htmlspecialchars($success); ?></div>
+  <?php endif; ?>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Email</th><th>Contact</th><th>Department</th><th>Area</th>
+        <th>Birthday</th><th>Address</th><th>Profile</th><th>Signature</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+
+    <?php foreach ($staff as $s): ?>
+      <?php
+        $sid = $s["id"];
+      ?>
+      <tr>
+        <td><?= htmlspecialchars($s["name"]) ?></td>
+        <td><?= htmlspecialchars($s["email"]) ?></td>
+        <td><?= htmlspecialchars($s["contact_number"]) ?></td>
+        <td><?= htmlspecialchars($s["department"]) ?></td>
+        <td><?= htmlspecialchars($s["area_of_work"]) ?></td>
+        <td><?= htmlspecialchars($s["birthday"]) ?></td>
+        <td><?= htmlspecialchars($s["address"]) ?></td>
+
+        <td>
+          <?php if ($s["profile_image"]): ?>
+            <img src="../<?= htmlspecialchars($s["profile_image"]) ?>" class="thumb">
+          <?php else: ?>
+            None
           <?php endif; ?>
-        </tbody>
-      </table>
-    </section>
-  </main>
-  <script>
-    document.querySelectorAll('[data-edit-toggle]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var id = btn.getAttribute('data-edit-toggle');
-        var row = document.getElementById('edit-' + id);
-        if (row) {
-          row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row';
-        }
-      });
-    });
-    
-    // Auto-close edit form after successful update
-    <?php if ($success !== ''): ?>
-      // Close all open edit rows after successful update
-      document.querySelectorAll('.edit-row').forEach(function(row) {
-        row.style.display = 'none';
-      });
-    <?php endif; ?>
-  </script>
+        </td>
+
+        <td>
+          <?php if ($s["signature_image"]): ?>
+            <img src="../<?= htmlspecialchars($s["signature_image"]) ?>" class="thumb">
+          <?php else: ?>
+            None
+          <?php endif; ?>
+        </td>
+
+        <td>
+          <button class="btn" onclick="toggleEdit('<?= $sid ?>')">Edit</button>
+          <form method="post" style="display:inline" onsubmit="return confirm('Delete user?');">
+            <input type="hidden" name="id" value="<?= $sid ?>">
+            <button class="btn" name="action" value="delete">Delete</button>
+          </form>
+        </td>
+      </tr>
+
+      <!-- EDIT FORM -->
+      <tr id="edit-<?= $sid ?>" class="edit-row" style="display:none;">
+        <td colspan="10">
+          <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="id" value="<?= $sid ?>">
+
+            <label>Name *</label>
+            <input type="text" name="name" value="<?= htmlspecialchars($s["name"]) ?>" required>
+
+            <label>Email</label>
+            <input type="email" name="email" value="<?= htmlspecialchars($s["email"]) ?>">
+
+            <label>Contact</label>
+            <input type="text" name="contact_number" value="<?= htmlspecialchars($s["contact_number"]) ?>">
+
+            <label>Department</label>
+            <input type="text" name="department" value="<?= htmlspecialchars($s["department"]) ?>">
+
+            <label>Area of Work</label>
+            <input type="text" name="area_of_work" value="<?= htmlspecialchars($s["area_of_work"]) ?>">
+
+            <label>Birthday</label>
+            <input type="date" name="birthday" value="<?= htmlspecialchars($s["birthday"]) ?>">
+
+            <label>Address</label>
+            <textarea name="address"><?= htmlspecialchars($s["address"]) ?></textarea>
+
+            <label>Profile Image</label>
+            <input type="file" name="profile_image_file">
+
+            <label>Signature Image</label>
+            <input type="file" name="signature_image_file">
+
+            <button class="btn" name="action" value="update">Save</button>
+          </form>
+        </td>
+      </tr>
+
+    <?php endforeach; ?>
+
+    </tbody>
+  </table>
+
+</div>
+
+<script>
+function toggleEdit(id) {
+  const row = document.getElementById("edit-" + id);
+  row.style.display = row.style.display === "none" ? "table-row" : "none";
+}
+</script>
+
 </body>
 </html>

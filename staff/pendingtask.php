@@ -134,35 +134,50 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pending Task</title>
 <style>
-  :root { --maroon-700:#5a0f1b; --maroon-600:#7a1b2a; --maroon-400:#a42b43; --text:#222; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: var(--text); }
-  .topbar { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #eee; background:#f9f6f7; }
-  .brand { font-weight:700; color: var(--maroon-700); }
-  .profile { display:flex; align-items:center; gap:10px; }
-  .name { font-weight:600; color:var(--maroon-700); }
-  .container { max-width:1100px; margin:20px auto; padding:0 16px; }
-  .actions { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px; margin-bottom:16px; }
-  .btn { display:inline-block; text-decoration:none; text-align:center; padding:10px 12px; border-radius:10px; border:1px solid #e5e5e5; background:#fff; cursor:pointer; font-weight:600; color:var(--maroon-700); transition: background .15s ease, border-color .15s ease, transform .1s ease; }
-  .btn:hover { background:#fff7f8; border-color: var(--maroon-400); }
-  .btn.small { padding:8px 10px; font-weight:600; }
-  .card { border:1px solid #eee; border-radius:12px; padding:16px; }
-  .list { display:grid; gap:12px; }
-  .item { border:1px solid #eee; border-radius:10px; padding:12px; display:grid; gap:8px; }
-  .row { display:flex; gap:10px; align-items:center; justify-content:space-between; }
-  .title { font-weight:700; color:var(--maroon-700); }
-  .meta { color:#555; font-size:14px; }
-  .notice { padding:10px 12px; border-radius:8px; }
-  .error { background:#fff1f2; color:#7a1b2a; border:1px solid #ffd5da; }
-  .success { background:#ecfeff; color:#0b6b74; border:1px solid #cffafe; }
-  @media (max-width: 640px) { .actions { grid-template-columns: 1fr; } }
-  .empty { color:#666; font-style:italic; }
-  form.inline { display:inline; margin:0; }
-  .pill { display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #eee; font-size:12px; color:#444; }
-  .deadline-label { font-weight:600; }
-  .deadline-label.overdue { color:#b91c1c; }
-  .deadline-label.due_soon { color:#92400e; }
-  .deadline-label.on_track { color:#047857; }
+  :root{
+    --maroon-900: #3f0710;
+    --maroon-800: #5a0f1b;
+    --maroon-700: #7a1b2a;
+    --maroon-600: #8b1f2f;
+    --maroon-500: #a42b43;
+    --muted: #fbf6f6;
+    --card: #ffffff;
+    --text: #111827;
+    --muted-text: #6b7280;
+    --success: #0b6b74;
+    --danger: #b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter, -apple-system, system-ui,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--muted),#fff 60%);color:var(--text);-webkit-font-smoothing:antialiased}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(90deg,var(--maroon-800),var(--maroon-700));color:#fff;position:sticky;top:0;z-index:40;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+  .brand{font-weight:800}
+  .profile{display:flex;align-items:center;gap:12px}
+  .name{font-weight:700;color:#fff}
+  .container{max-width:1100px;margin:28px auto;padding:0 18px}
+  .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 12px;border-radius:10px;border:0;background:var(--maroon-700);color:#fff;font-weight:700;cursor:pointer;transition:transform .12s ease,background .12s ease}
+  .btn.secondary{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--maroon-700);font-weight:600}
+  .btn.small{padding:8px 10px;font-weight:600}
+  @media(max-width:820px){.actions{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:480px){.actions{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border-radius:12px;padding:16px;border:1px solid rgba(15,23,42,0.04);box-shadow:0 8px 20px rgba(16,24,40,0.04)}
+  .list{display:grid;gap:12px}
+  .item{padding:14px;border-radius:12px;border:1px solid rgba(15,23,42,0.04);background:#fff}
+  .row{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  .title{font-weight:700;color:var(--maroon-900)}
+  .meta{color:var(--muted-text);font-size:14px}
+  .notice{padding:10px 12px;border-radius:8px}
+  .error{background:#fff1f2;color:var(--danger);border:1px solid #ffd5da}
+  .success{background:#ecfeff;color:var(--success);border:1px solid #cffafe}
+  .empty{color:var(--muted-text);font-style:italic}
+  form.inline{display:inline;margin:0}
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(15,23,42,0.04);font-size:12px;color:var(--muted-text);font-weight:700}
+  .deadline-label{font-weight:700}
+  .deadline-label.overdue{color:var(--danger)}
+  .deadline-label.due_soon{color:var(--maroon-600)}
+  .deadline-label.on_track{color:var(--success)}
+  @media(max-width:480px){.row{flex-direction:column;align-items:flex-start;gap:8px}}
 </style>
 </head>
 <body>
@@ -175,8 +190,8 @@ try {
   </header>
   <main class="container">
     <section class="actions" aria-label="Staff actions">
-      <a class="btn" href="/ERS/staff/dashboard.php">Back to Home</a>
-      <a class="btn" href="/ERS/staff/information.php">Information</a>
+      <a class="btn" href="/maintenance/staff/dashboard.php">Back to Home</a>
+      <a class="btn" href="/maintenance/staff/information.php">Information</a>
     </section>
 
     <?php if ($errors): ?>

@@ -202,8 +202,8 @@ function fmt_date(?string $dateStr): string {
     </header>
     <main class="container">
         <section class="actions" aria-label="Admin actions">
-            <a class="btn" href="/ERS/meso/dashboard.php">Back to Home</a>
-            <a class="btn"  href="/ERS/meso/staff.php">Staffs</a>
+            <a class="btn" href="/maintenance/meso/dashboard.php">Back to Home</a>
+            <a class="btn"  href="/maintenance/meso/staff.php">Staffs</a>
             <button class="btn" type="button">Reports</button>
         </section>
         <?php if ($errors): ?>

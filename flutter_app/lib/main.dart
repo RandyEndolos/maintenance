@@ -1,78 +1,86 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/login_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/request_form.dart';
+import 'screens/requests_list.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  // Load environment (ignore if missing in release builds)
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {}
+
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+
+  String? initError;
+  if (supabaseUrl.isEmpty || supabaseKey.isEmpty) {
+    initError =
+        'Missing SUPABASE_URL or SUPABASE_ANON_KEY. Copy `.env.example` to `.env` and set keys.';
+  } else {
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseKey,
+        authFlowType: AuthFlowType.pkce,
+      );
+    } catch (e) {
+      initError = 'Supabase initialization failed: $e';
+    }
+  }
+
+  runApp(MyApp(initError: initError));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String? initError;
+  const MyApp({super.key, this.initError});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Maintenance WebView',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const WebViewPage(),
-    );
-  }
-}
-
-class WebViewPage extends StatefulWidget {
-  const WebViewPage({super.key});
-  @override
-  State<WebViewPage> createState() => _WebViewPageState();
-}
-
-class _WebViewPageState extends State<WebViewPage> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) => setState(() => _isLoading = true),
-          onPageFinished: (_) => setState(() => _isLoading = false),
+    if (initError != null) {
+      return MaterialApp(
+        title: 'Maintenance - Error',
+        home: Scaffold(
+          appBar: AppBar(title: const Text('Initialization Error')),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(initError!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: 12),
+                const Text('Tips:'),
+                const Text(
+                    '- Create a `.env` file in the app root from `.env.example`.'),
+                const Text(
+                    '- Make sure `SUPABASE_URL` and `SUPABASE_ANON_KEY` are set.'),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => {},
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          ),
         ),
-      )
-      ..loadRequest(Uri.parse('https://maintenance.gt.tc'));
-  }
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Maintenance'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller.reload(),
-            tooltip: 'Reload',
-          ),
-          IconButton(
-            icon: const Icon(Icons.open_in_browser),
-            onPressed: () async {
-              final url = Uri.parse('https://maintenance.gt.tc');
-              _controller.loadRequest(url);
-            },
-            tooltip: 'Open',
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading) const Center(child: CircularProgressIndicator()),
-        ],
-      ),
+    return MaterialApp(
+      title: 'Maintenance',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      routes: {
+        '/': (_) => const LoginScreen(),
+        '/dashboard': (_) => const DashboardScreen(),
+        '/request/new': (_) => const RequestFormScreen(),
+        '/requests': (_) => const RequestsListScreen(),
+        '/info': (_) => const Scaffold(
+            body: Center(child: Text('Information page (placeholder)'))),
+      },
     );
   }
 }

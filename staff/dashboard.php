@@ -41,6 +41,39 @@ try {
   // Fall back to session name
 }
 
+// Determine avatar URL (prefer session value, fallback to users table)
+$avatarUrl = '';
+$avatarKeys = ['avatar','avatar_url','photo','profile_image','profile_photo','picture','image'];
+foreach ($avatarKeys as $k) {
+  if (!empty($user[$k])) { $avatarUrl = (string)$user[$k]; break; }
+}
+if ($avatarUrl === '' && $staffName !== '') {
+  try {
+    $urows = supabase_request('GET', 'users', null, ['select' => 'avatar,avatar_url,photo,picture', 'name' => 'eq.' . $staffName, 'limit' => 1]);
+    if (is_array($urows) && count($urows) > 0) {
+      $row = $urows[0];
+      foreach (['avatar_url','avatar','photo','picture'] as $k) {
+        if (!empty($row[$k])) { $avatarUrl = (string)$row[$k]; break; }
+      }
+    }
+  } catch (Throwable $e) {
+    // ignore
+  }
+}
+
+// Compute initials fallback
+$initials = '';
+if ($displayName !== '') {
+  $parts = preg_split('/\s+/', trim($displayName));
+  $letters = [];
+  foreach ($parts as $p) {
+    if ($p === '') continue;
+    $letters[] = mb_strtoupper(mb_substr($p, 0, 1));
+    if (count($letters) >= 2) break;
+  }
+  $initials = implode('', $letters);
+}
+
 $manualStatuses = load_staff_manual_statuses();
 $currentManual = staff_manual_status($staffName, $manualStatuses);
 $statusMessage = '';
@@ -105,72 +138,175 @@ if ($staffName !== '') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Staff Dashboard</title>
 <style>
-  :root {
-    --maroon-700: #5a0f1b;
-    --maroon-600: #7a1b2a;
-    --maroon-400: #a42b43;
-    --offwhite: #f9f6f7;
-    --text: #222;
+  :root{
+    --maroon-900:#3f0710;
+    --maroon-800:#5a0f1b;
+    --maroon-700:#7a1b2a;
+    --maroon-500:#a42b43;
+    --maroon-300:#c66a74;
+    --muted:#f7f3f4;
+    --card:#ffffff;
+    --text:#111827;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: var(--text); }
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #eee; background: var(--offwhite); }
-  .brand { font-weight: 700; color: var(--maroon-700); }
-  .profile { display: flex; align-items: center; gap: 10px; }
-  .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #ddd; }
-  .name { font-weight: 600; color: var(--maroon-700); }
-  .container { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
-  .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .btn { padding: 14px 16px; border-radius: 10px; border: 1px solid #e5e5e5; background: #fff; cursor: pointer; font-weight: 600; color: var(--maroon-700); transition: background .15s ease, border-color .15s ease, transform .1s ease; }
-  .btn:hover { background: #fff7f8; border-color: var(--maroon-400); }
-  .btn:active { transform: translateY(1px); }
-  @media (max-width: 640px) { .actions { grid-template-columns: 1fr; } }
-  .status-card { margin-top: 20px; border: 1px solid #eee; border-radius: 12px; padding: 16px; background: #fff; }
-  .status-pill { display: inline-block; padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 14px; }
-  .status-pill.available { background: #d1fae5; color: #065f46; }
-  .status-pill.assigned { background: #dbeafe; color: #1d4ed8; }
-  .status-pill.leave { background: #fde68a; color: #92400e; }
-  .status-pill.absence { background: #fee2e2; color: #b91c1c; }
-  .status-form { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .status-form select { padding: 10px 12px; border-radius: 8px; border: 1px solid #e5e5e5; font: inherit; }
-  .status-note { margin-top: 8px; font-size: 13px; color: #6b7280; }
-  .status-card { border: 1px solid #eee; border-radius: 10px; padding: 12px; background: #fff; }
-  .status-form { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .status-form select { padding: 8px 10px; border-radius: 8px; border: 1px solid #e5e5e5; font: inherit; font-size: 13px; }
-  .deadline-card { border: 1px solid #eee; border-radius: 10px; padding: 12px; background: #fff; }
-  .deadline-card h2 { margin: 0 0 6px; font-size: 16px; color: var(--maroon-700); }
-  .deadline-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-  .deadline-item { border: 1px solid #f3f4f6; border-radius: 8px; padding: 10px; background: #fff; }
-  .deadline-item.overdue { border-color: #fecaca; background: #fff5f5; }
-  .deadline-item.due_soon { border-color: #fde68a; background: #fffbeb; }
-  .deadline-item h3 { margin: 0 0 4px; font-size: 14px; color: var(--maroon-700); }
-  .deadline-meta { font-size: 12px; color: #555; display: flex; flex-wrap: wrap; gap: 8px; }
-  .deadline-badge { padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-  .deadline-badge.overdue { background: #fee2e2; color: #b91c1c; }
-  .deadline-badge.due_soon { background: #fef3c7; color: #92400e; }
-  .deadline-empty { color: #6b7280; font-size: 13px; }
-  .dashboard-grid { display:grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 0.8fr); gap:16px; align-items:start; margin-top:20px; }
-  .dashboard-calendar { min-width:0; }
-  .dashboard-side { display:flex; flex-direction:column; gap:12px; min-width:0; }
-  .dashboard-side > section { width:100%; }
-  @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr); } }
-  @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter, -apple-system, system-ui, 'Segoe UI', Roboto, Arial;
+    background: linear-gradient(180deg, var(--maroon-700) 0%, var(--maroon-500) 100%);
+    color:var(--text);
+    min-height:100vh;
+  }
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(90deg,var(--maroon-800),var(--maroon-700));color:#fff;box-shadow:0 2px 8px rgba(15,23,42,0.06);position:sticky;top:0;z-index:50}
+  .brand{font-weight:700;font-size:18px;letter-spacing:0.2px}
+  .profile{display:flex;align-items:center;gap:12px}
+  .avatar{width:40px;height:40px;border-radius:999px;object-fit:cover;background:#fff3f4;border:2px solid rgba(255,255,255,0.12)}
+  .name{font-weight:700;color:#fff}
+  .container{
+    max-width:1200px;
+    margin:38px auto 28px auto;
+    padding:0 20px;
+    background:rgba(255,255,255,0.97);
+    border-radius:18px;
+    box-shadow:0 8px 32px rgba(64,7,16,0.10), 0 1.5px 0 rgba(64,7,16,0.04);
+  }
+  /* ensure content inside the white card respects rounding and doesn't overflow */
+  .container{overflow:hidden; padding:18px 20px}
+  .actions{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    width:100%;
+    margin-bottom:10px;
+  }
+  /* keep action buttons inside the white card and avoid overflow */
+  .actions{padding:6px 0}
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:12px 0;
+    border-radius:10px;
+    border:0;
+    background:var(--maroon-700);
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 1px 0 rgba(0,0,0,0.04);
+    transition:transform .08s ease,box-shadow .12s ease;
+    width:100%;
+    max-width:100%;
+    font-size:1rem;
+  }
+  .btn, .actions a.btn, .actions button.btn{box-sizing:border-box;min-width:0}
+  .actions a.btn{display:inline-block;text-align:center}
+  /* prevent long text from forcing extra width */
+  .btn{white-space:normal;overflow:hidden;text-overflow:ellipsis}
+  .btn.secondary{background:transparent;border:1px solid rgba(124,58,58,0.12);color:var(--maroon-800);font-weight:600}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,58,0.08)}
+  @media(max-width:760px){
+    .actions{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:460px){
+    .actions{grid-template-columns:1fr}
+  }
+
+  .dashboard-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:18px;
+    align-items:start;
+    margin-top:22px;
+  }
+  .dashboard-calendar{
+    min-width:0;
+    background:var(--card);
+    border-radius:16px;
+    padding:18px 16px 16px 16px;
+    box-shadow:0 6px 18px rgba(16,24,40,0.07);
+    border:1.5px solid var(--maroon-300);
+  }
+  .dashboard-side{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  .card{
+    background:var(--card);
+    border-radius:14px;
+    padding:16px;
+    border:1.5px solid var(--maroon-300);
+    box-shadow:0 6px 18px rgba(16,24,40,0.06);
+  }
+  .status-card{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    background:var(--card);
+    border-radius:14px;
+    padding:16px 14px 14px 14px;
+    border:1.5px solid var(--maroon-300);
+    box-shadow:0 6px 18px rgba(124,58,58,0.07);
+  }
+  .status-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .status-title{font-weight:700;color:var(--maroon-900)}
+
+  .status-pill{display:inline-block;padding:8px 14px;border-radius:999px;font-weight:700;font-size:13px}
+  .status-pill.available{background:#eefdf5;color:#065f46}
+  .status-pill.assigned{background:#eef2ff;color:#3730a3}
+  .status-pill.leave{background:#fff7ed;color:#92400e}
+  .status-pill.absence{background:#fff1f2;color:#831843}
+
+  .status-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .status-form select{padding:10px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);font:inherit}
+  .status-note{font-size:13px;color:#6b7280}
+
+  .deadline-card{
+    background:var(--card);
+    border-radius:14px;
+    padding:16px 14px 14px 14px;
+    border:1.5px solid var(--maroon-300);
+    box-shadow:0 6px 18px rgba(124,58,58,0.07);
+  }
+  .deadline-card h2{margin:0;font-size:16px;color:var(--maroon-800)}
+  .deadline-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .deadline-item{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);background:linear-gradient(180deg,#fff,#fff)}
+  .deadline-item.overdue{border-color:rgba(185,28,28,0.12);background:linear-gradient(180deg,#fff5f5,#fff)}
+  .deadline-item.due_soon{border-color:rgba(202,138,4,0.12);background:linear-gradient(180deg,#fffbeb,#fff)}
+  .deadline-meta{font-size:13px;color:#374151;display:flex;flex-wrap:wrap;gap:10px}
+  .deadline-badge{padding:4px 8px;border-radius:999px;font-weight:800;font-size:11px}
+  .deadline-badge.overdue{background:#fee2e2;color:#991b1b}
+  .deadline-badge.due_soon{background:#fff7ed;color:#92400e}
+
+  .deadlines-empty{color:#6b7280;font-size:14px}
+
+  @media(max-width:900px){
+    .dashboard-grid{grid-template-columns:1fr}
+    .container{margin:18px auto}
+  }
+  /* Maroon background for page */
+  html{background:var(--maroon-700);}
 </style>
 </head>
 <body>
   <header class="topbar">
     <div class="brand">RCC Staff</div>
     <div class="profile">
-      
+      <?php if ($avatarUrl !== ''): ?>
+        <img class="avatar" src="<?php echo htmlspecialchars($avatarUrl); ?>" alt="Avatar" onerror="this.style.display='none'; this.parentElement.querySelector('.avatar.initials').style.display='flex'">
+      <?php else: ?>
+        <div class="avatar initials"><?php echo htmlspecialchars($initials); ?></div>
+      <?php endif; ?>
       <div class="name"><?php echo htmlspecialchars($displayName); ?></div>
       <a class="btn" href="../logout.php">Logout</a>
     </div>
   </header>
   <main class="container">
     <section class="actions" aria-label="Staff actions">
-      <a class="btn" href="/ERS/staff/information.php">Information</a>
-      <a class="btn" href="/ERS/staff/pendingtask.php">Pending Task</a>
-      <a class="btn" href="/ERS/staff/accomplishment.php">Accomplishments</a>
+      <a class="btn" href="/maintenance/staff/information.php">Information</a>
+      <a class="btn" href="/maintenance/staff/pendingtask.php">Pending Task</a>
+      <a class="btn" href="/maintenance/staff/accomplishment.php">Accomplishments</a>
       <button class="btn" type="button" onclick="document.getElementById('status-card').scrollIntoView({behavior:'smooth'});">Submit Work Leave/Absence</button>
     </section>
     <div class="dashboard-grid">
